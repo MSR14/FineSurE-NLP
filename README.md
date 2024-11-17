@@ -10,7 +10,7 @@ The structure of the project:
 ## Highlight
 
 **FineSurE** is a *multi-dimensional*, *fine-grained* automated evaluation framework for text summarization. It covers there distinctive evaluation dimensions, namely faithfulness, completeness, and conciseness. These dimensions are crucial to assess the capability of modern language models in summarization, as they are susceptible to incorrect statement, information omission, and verbosity. FineSurE (Finegrained Summarization Evaluation) using LLMs,
-a novel automated approach designed to evaluate the summarization quality at a fine-grained level based on summary sentences or keyfacts and the key-fact alignment.
+a novel automated approach designed to evaluate the summarization quality at a fine-grained level based on summary sentences or keyfacts and the key-fact alignment. This model uses human generated key facts for evaluation.
 
 FineSurE framework breaks down a complicate evaluation process into ```two simple human-like evaluation tasks``` using LLMs. 
 
