@@ -6,7 +6,7 @@ from utils import get_response, parsing_llm_fact_checking_output, compute_faithf
 from utils import get_fact_checking_prompt
 
 # api key
-_api_key = ""
+_api_key = "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"
 # _client = openai.OpenAI(api_key=_api_key)
 openai.api_key = _api_key
 #_model = "gpt-3.5-turbo"

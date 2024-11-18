@@ -3,12 +3,23 @@ import random
 from transformers import pipeline
 import nltk
 from nltk.corpus import wordnet
-# Load the original FRANK dataset
 
-frank_data=[]
-for line in open('frank-data-sample-10.json', 'r'):
-    line = json.loads(line)  # This should be a list of dictionary records
-    frank_data.append(line)
+frank_data = []
+count_zero_labels = 0
+count_other = 0
+max_zero_labels = 50
+max_other = 50
+realsumm_data=[]
+
+with open('dataset/frank/frank-data-100.json', 'r') as file:
+    for line in file:
+        line = json.loads(line)
+        frank_data.append(line)
+
+with open('dataset/realsumm/realsumm-data-100.json', 'r') as file:
+    for line in file:
+        line = json.loads(line)
+        realsumm_data.append(line)
 
 # Ensure you have the WordNet data
 nltk.download('wordnet')
@@ -53,12 +64,21 @@ def perturb_dataset(data, perturb_func, output_file):
             f.write(json_line + '\n')
 
 # Define all perturbation functions
-perturbations = {
-    "FRANK_synonym.json": replace_with_synonyms,
-    "FRANK_paraphrased.json": paraphrase_text,
-    "FRANK_typo.json": lambda x: introduce_typos(x, typo_rate=0.1)
+perturbations_frank = {
+    "dataset/frank/frank_synonym.json": replace_with_synonyms,
+    "dataset/frank/frank_paraphrased.json": paraphrase_text,
+    "dataset/frank/frank_typo.json": lambda x: introduce_typos(x, typo_rate=0.1)
+}
+perturbations_realsumm = {
+    "dataset/realsumm/realsumm_synonym.json": replace_with_synonyms,
+    "dataset/realsumm_paraphrased.json": paraphrase_text,
+    "dataset/realsumm_typo.json": lambda x: introduce_typos(x, typo_rate=0.1)
 }
 
 # Generate datasets
-for filename, perturb_func in perturbations.items():
+for filename, perturb_func in perturbations_frank.items():
     perturb_dataset(frank_data, perturb_func, filename)
+
+for filename, perturb_func in perturbations_realsumm.items():
+    perturb_dataset(realsumm_data, perturb_func, filename)
+

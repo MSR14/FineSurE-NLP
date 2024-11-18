@@ -1,0 +1,20 @@
+
+
+
+[Evaluation Results]
+
+* completeness score per model (higher is better)
+unilm_out_v2	49.0%
+
+* completeness model ranking (left is better)
+['unilm_out_v2']
+
+* conciseness score per model (higher is better)
+unilm_out_v2	71.4%
+
+* conciseness model ranking (left is better)
+['unilm_out_v2']
+
+* success rate: 100.0%
+
+

@@ -8,7 +8,7 @@ from utils import compute_completeness_percentage_score, compute_conciseness_per
 
 
 # api key
-_api_key = ""
+_api_key = "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"
 #_model = "gpt-3.5-turbo"
 openai.api_key = _api_key
 #_model = "gpt-4-1106-preview"
