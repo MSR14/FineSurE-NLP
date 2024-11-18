@@ -23,13 +23,13 @@ def main(input_path, keyfact_path, output_path, print_interval=2):
         print_interval: print the percentage scores every 'print_interval' 
     '''
 
-    # loads data for completeness and conciseness evaluation using FineSurE
+    # Load data for completeness and conciseness evaluation using FineSurE
     inputs = []
     for line in open(input_path, 'r'):
         line = json.loads(line)
         inputs.append(line)
 
-    # loads keyfacts 
+    # Load key facts into a dictionary with doc_id as the key
     keyfacts = {}
     for line in open(keyfact_path, 'r'):
         line = json.loads(line)
@@ -40,14 +40,14 @@ def main(input_path, keyfact_path, output_path, print_interval=2):
     cnt_success_inference = 0
     model_labels = {}
     
-    # writer to store the output from LLM evaluation
+    # Open files to store raw data and evaluation results from the LLM evaluation
     raw_data_writer = open(os.path.join(output_path, 'raw-data.json'), 'w')
     result_writer = open(os.path.join(output_path, 'result.json'), 'w')
 
-    # processes each data instance using for loop
+    # Process each data instance in the inputs list
     for input_id, input_json in enumerate(inputs):
 
-        # input json parsing
+        # Parse input JSON to extract relevant fields
         doc_id = input_json['doc_id']
         model_name = input_json['model']
         src = input_json['transcript']
@@ -81,7 +81,7 @@ def main(input_path, keyfact_path, output_path, print_interval=2):
             # fail to evalaute -> skip
             continue      
 
-        # compute the percentage score for faithfulness
+        # Compute percentage scores for faithfulness
         completeness_score = compute_completeness_percentage_score(input_json['pred_alignment_labels'])
         conciseness_score = compute_conciseness_percentage_score(input_json['pred_sentence_line_numbers'], len(sentences))
 
@@ -97,26 +97,35 @@ def main(input_path, keyfact_path, output_path, print_interval=2):
         def print_results_faithfulness(model_labels):
             summary_level_completeness_scores = {}
             summary_level_conciseness_scores = {}
-
+            
+            # Loop through each model's labels to compute average completeness and conciseness scores
             for model_name, error_labels in model_labels.items():
                 summary_level_completeness_scores[model_name] = sum(error_labels['completeness_scores']) / len(error_labels['completeness_scores'])
                 summary_level_conciseness_scores[model_name] = sum(error_labels['conciseness_scores']) / len(error_labels['conciseness_scores'])
 
             text_output = "\n\n\n[Evaluation Results]\n"
             text_output += '\n* completeness score per model (higher is better)\n'
+
+            # Append completeness scores for each model to the output
             for model_name, score in summary_level_completeness_scores.items():
                 text_output += model_name + '\t' + str('{:.1%}'.format(score)) + '\n'
 
             text_output += '\n* completeness model ranking (left is better)\n'
+
+            # Sort the models by completeness score in descending order
             sorted_dict = dict(sorted(summary_level_completeness_scores.items(), key=lambda item: item[1], reverse=True))
             model_ranking = list(sorted_dict.keys())
             text_output += str(model_ranking) + '\n'
 
             text_output += '\n* conciseness score per model (higher is better)\n'
+
+            # Loop through and add each model's conciseness score to the output
             for model_name, score in summary_level_conciseness_scores.items():
                 text_output += model_name + '\t' + str('{:.1%}'.format(score)) + '\n'
 
             text_output += '\n* conciseness model ranking (left is better)\n'
+
+            # Sort the models by conciseness score in descending order
             sorted_dict = dict(sorted(summary_level_conciseness_scores.items(), key=lambda item: item[1], reverse=True))
             model_ranking = list(sorted_dict.keys())
             text_output += str(model_ranking) + '\n'
@@ -131,9 +140,11 @@ def main(input_path, keyfact_path, output_path, print_interval=2):
         # if cnt_total_inference % print_interval == 0:
         #     print_results_faithfulness(model_labels=model_labels)
            
+        # Write the input JSON to the raw data file and add a newline   
         json.dump(input_json, raw_data_writer)
         raw_data_writer.write('\n')
         raw_data_writer.flush()
+    # Close the raw data file after writing
     raw_data_writer.close()
 
     # print final results
@@ -155,7 +166,7 @@ if __name__ == "__main__":
     keyfact_path = sys.argv[2]
     output_folder = sys.argv[3]
 
-    # print logs every 10 inferences
+    # print logs for every 10 inferences
     print_interval = 10
 
     if not os.path.isdir(output_folder):

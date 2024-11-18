@@ -21,7 +21,7 @@ def main(input_path, output_path, print_interval=2):
         print_interval: print the percentage scores every 'print_interval' 
     '''
 
-    # loads data for faithfulness evaluation using FineSurE
+    # Load and parse data for faithfulness evaluation with FineSurE
     inputs = []
     for line in open(input_path, 'r'):
         line = json.loads(line)
@@ -32,14 +32,14 @@ def main(input_path, output_path, print_interval=2):
     cnt_success_inference = 0
     model_labels = {}
     
-    # writer to store the output from LLM evaluation
+    # Initialize writers to save the output from LLM evaluation
     raw_data_writer = open(os.path.join(output_path, 'raw-data.json'), 'w')
     result_writer = open(os.path.join(output_path, 'result.json'), 'w')
 
-    # processes each data instance using for loop
+    # Iterate through each data instance in the inputs list
     for input_id, input_json in enumerate(inputs):
 
-        # input json parsing
+        # Parse the input JSON to extract details such as document ID, model name, source transcript, and sentences
         doc_id = input_json['doc_id']
         model_name = input_json['model']
         src = input_json['transcript']
@@ -48,14 +48,15 @@ def main(input_path, output_path, print_interval=2):
         # prompt generation
         prompt = get_fact_checking_prompt(input=src, sentences=sentences)
 
-        # get response from LLMs
+        # Obtain responses from LLMs
         # output = get_response(client=openai.api_key, prompt=prompt, model=_model)
         output = get_response(client=openai, prompt=prompt, model=_model)
  
         input_json['llm_output'] = output
         input_json['pred_faithfulness_labels'], input_json['pred_faithfulness_error_type'] = parsing_llm_fact_checking_output(output)
 
-        # check if the parsing is success
+        # Verify if parsing was successful
+
         success_flag = True
         if len(input_json['pred_faithfulness_labels']) == 0:
             success_flag = False
@@ -65,7 +66,7 @@ def main(input_path, output_path, print_interval=2):
         print('\t[Error Label]:', input_json['pred_faithfulness_labels'])
         print('\t[Error Type]:', input_json['pred_faithfulness_error_type'])
 
-        # count the success cases
+        # Track successful cases
         cnt_total_inference += 1
         if success_flag:
             cnt_success_inference += 1
@@ -73,11 +74,11 @@ def main(input_path, output_path, print_interval=2):
             # fail to evalaute -> skip
             continue
 
-        # compute the percentage score for faithfulness
+        # Calculate the percentage score for faithfulness
         faithfulness_score = compute_faithfulness_percentage_score(input_json['pred_faithfulness_labels'])
         print('\t[Faithfulness Score]:', '{:.1%}'.format(faithfulness_score))
 
-        # put the score into the aggregation dictionary
+        # Add the score to the aggregation dictionary
         if model_name not in model_labels:
             model_labels[model_name] = {'faithfulness_scores': [], 'binary_labels': []}
         model_labels[model_name]['faithfulness_scores'].append(faithfulness_score)
@@ -86,11 +87,14 @@ def main(input_path, output_path, print_interval=2):
         def print_results_faithfulness(model_labels):
             sentence_level_errors = {}
             summary_level_scores = {}
+            # Calculate sentence-level error ratios and summary-level faithfulness scores for each model
             for model_name, error_labels in model_labels.items():
                 sentence_level_errors[model_name] = sum(error_labels['binary_labels']) / len(error_labels['binary_labels'])
                 summary_level_scores[model_name] = sum(error_labels['faithfulness_scores']) / len(error_labels['faithfulness_scores'])
 
             text_output = "\n\n\n[Evaluation Results]\n"
+
+            # Add sentence-level error ratio results
             text_output += '* sentence-level factuality error ratio per model (lower is better)\n'
             for model_name, error_rate in sentence_level_errors.items():
                 text_output += model_name + '\t' + str('{:.1%}'.format(error_rate)) + '\n'
@@ -101,6 +105,8 @@ def main(input_path, output_path, print_interval=2):
 
             text_output += '\n* system-level model ranking (left is better)\n'
             sorted_dict = dict(sorted(summary_level_scores.items(), key=lambda item: item[1], reverse=True))
+            
+            # Extract model names in ranked order
             model_ranking = list(sorted_dict.keys())
             text_output += str(model_ranking) + '\n'
 
@@ -137,7 +143,7 @@ if __name__ == "__main__":
     input_path = sys.argv[1]
     output_path = sys.argv[2]
 
-    # print logs every 10 inferences
+    # print logs for every 10 inferences
     print_interval = 10
 
     if not os.path.isdir(output_path):

@@ -4,6 +4,7 @@ This is for providing fundamental functions for FineSurE.
 import ast
 import openai
 
+# Define the types of errors that can be encountered in evaluation
 ERROR_TYPES = ['out-of-context error', 'entity error', 'predicate error', 'circumstantial error', 'grammatical error', 'coreference error', 'linking error', 'other error']
 
 def get_response(client, prompt, model, temperature=0.0):
@@ -17,10 +18,12 @@ def get_response(client, prompt, model, temperature=0.0):
         text_response: the output from LLMs
     '''
 
+    # Send a request to the OpenAI API to get a response from the specified model
     response = client.ChatCompletion.create(
     model=model,
     messages=[{"role": "user", "content": prompt}],
     temperature=temperature)
+    # Extract the content of the model's response
     text_response = response.choices[0].message.content
 
     return text_response
@@ -85,67 +88,72 @@ def parsing_llm_fact_checking_output(output):
     '''
 
     try:
+        # Attempt to parse the output if it's in list format enclosed in square brackets
         start_idx = output.find('[')
 
         if start_idx != -1:
             end_idx = output.find(']')
             output = output[start_idx:end_idx+1]
-            output = output.replace('\n','')
-            output = ast.literal_eval(output)
+            output = output.replace('\n','') # Remove newline characters
+            output = ast.literal_eval(output) # Convert string representation to Python list
 
             pred_labels, pred_types = [], []
             for out in output:
                 category = out["category"]
-                category = category.replace('\n', '').replace('[', '').replace(']', '')
+                category = category.replace('\n', '').replace('[', '').replace(']', '') # Clean category text
                 if category.lower() == "no error":
-                    pred_labels.append(0)
+                    pred_labels.append(0) # No error found, assign label 0
                 else:
-                    pred_labels.append(1)
-                pred_types.append(category)
+                    pred_labels.append(1) # Error found, assign label 1
+                pred_types.append(category) # Store the error category
             return pred_labels, pred_types
         
+        # If the output is in dictionary format, enclosed in curly braces
         else:
             start_idx = output.find('{')
             end_idx = output.find('}')
             output = output[start_idx:end_idx+1]
-            output = output.replace('\n','')
-            output = ast.literal_eval(output)
+            output = output.replace('\n','') # Remove newline characters
+            output = ast.literal_eval(output) # Convert string representation to Python dictionary
 
             pred_labels, pred_types = [], []
             category = output["category"]
-            category = category.replace('\n', '').replace('[', '').replace(']', '')
+            category = category.replace('\n', '').replace('[', '').replace(']', '') # Clean category text
             if category.lower() == "no error":
-                pred_labels.append(0)
+                pred_labels.append(0) # No error found, assign label 0
             else:
-                pred_labels.append(1)
-            pred_types.append(category)
+                pred_labels.append(1) # Error found, assign label 1
+            pred_types.append(category) # Store the error category
             return pred_labels, pred_types
         
     except Exception as e:
         
+        # Handle case where heuristic parsing fails, and try an alternative error detection method
         try:
             subseqs = output.split("category")
-
+            
+            # Function to detect errors based on predefined error types
             def error_detection(subseq):
                 detected = False
-                for error_type in ERROR_TYPES:
-                    if error_type in subseq:
+                for error_type in ERROR_TYPES: 
+                    if error_type in subseq: # Check if the error type is present in the subsequence
                         detected = True
                         detected_type = error_type
                 if detected:
-                    return 1, error_type
+                    return 1, error_type # Error detected, return label 1 with the error type
                 else:
-                    return 0, "no error"
+                    return 0, "no error" # No error detected, return label 0 with "no error"
                 
             pred_labels, pred_types = [], []
             for subseq in subseqs:
-                error_label, error_type = error_detection(subseq)
+                error_label, error_type = error_detection(subseq) # Apply error detection to each subsequence
                 pred_labels.append(error_label)
                 pred_types.append(error_type)
         
             return pred_labels, pred_types
         
         except Exception as e:
+            # If both methods fail, print the error and return empty lists
             print('parsing error:', e)
             return [], []
 
@@ -165,6 +173,8 @@ def get_keyfact_alighment_prompt(keyfacts, sentences):
 
     summary = ['[' + str(line_num + 1) + '] ' + sentence for line_num, sentence in enumerate(sentences)]
     summary = '\n'.join(summary)
+
+    # Convert the number of key facts to a string
     num_key_facts = str(len(keyfacts))
     key_facts = '\n'.join(keyfacts)
     
@@ -200,25 +210,30 @@ def parsing_llm_keyfact_alighment_output(output):
     '''
         
     try:
+        # Clean the output by removing '```' and isolating the list content
         output = output.replace('```', '')
         start_idx = output.find('[')
         output = output[start_idx:]
-        output = ast.literal_eval(output)
+        output = ast.literal_eval(output) # Parse the output string to a Python list
 
         matched_lines = set()
         pred_labels = []
 
+        # Iterate through each item in the output list (presumably containing key fact alignment info)
         for out in output:
             category = out["response"]
 
+            # If the response is "yes", mark as a match (1), otherwise mark as no match (0)
             if category.lower() == "yes":
                 pred_labels.append(1)
             else:
                 pred_labels.append(0)
             
+            # Check if the output contains "line number" and process it
             if 'line number' in out:
                 line_nums = out["line number"]
 
+                # Iterate through the line numbers and add them to the matched_lines set
                 for line_num in line_nums:
                     if type(line_num) is str:
                         line_num = line_num.replace('[', '').replace(']', '')
@@ -227,6 +242,7 @@ def parsing_llm_keyfact_alighment_output(output):
         return pred_labels, list(matched_lines)
     
     except Exception as e:
+        # If any error occurs during parsing, print the error and return empty lists
         print(e)
         return [], []
     
@@ -234,14 +250,17 @@ def parsing_llm_keyfact_alighment_output(output):
 '''
  Score funtions
 '''
+# Computes the faithfulness score based on the binary labels of faithfulness.
 def compute_faithfulness_percentage_score(pred_faithfulness_labels):
     faithfulness = 1.0 - sum(pred_faithfulness_labels) / len(pred_faithfulness_labels)  
     return faithfulness
 
+# Computes the completeness score based on the alignment labels.
 def compute_completeness_percentage_score(pred_alignment_labels):
     completeness = sum(pred_alignment_labels) / len(pred_alignment_labels)  
     return completeness
 
+# Computes the conciseness score based on the number of sentences referenced.
 def compute_conciseness_percentage_score(pred_sentence_line_numbers, num_sentences):
     conciseness = len(pred_sentence_line_numbers) / num_sentences
     return conciseness
