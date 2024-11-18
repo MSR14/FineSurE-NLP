@@ -29,7 +29,6 @@ Replace the ```openai api key``` with your api key in ```finesure/fact-checking.
 
 #### Runnining Command:
 ```bash
-cd CodeRelease
 python finesure/fact-checking.py [input-path] [output-folder]
 
 # example code for fact checking on sampled data.
@@ -38,7 +37,6 @@ python finesure/fact-checking.py dataset/frank/frank-data-sample-10.json result/
 
 #### Runnining Command:
 ```bash
-cd CodeRelease
 python finesure/keyfact-alignment.py [input-path] [keyfact-path] [output-folder]
 
 # example code for keyfact alignment on sampled data.
@@ -69,7 +67,6 @@ bart	75.0%
 * system-level model ranking (left is better)
 ['bert_sum', 'pgn', 'bart', 'bus', 's2s']
 
-* success rate: 100.0%
 ```
 
 * Keyfact Alignment Task:
@@ -90,13 +87,13 @@ t5_out_large	81.7%
 * conciseness model ranking (left is better)
 ['t5_out_large', 'unilm_out_v2']
 
-* success rate: 100.0%
 ```
 
 ## Reproduce the Main Table of the Paper
 
 ```bash
-cd CodeRelease/reproduce
+cd reproduce
 python reproduce-main-results.py results/frank-result-by-gpt4-w-finesure.json results/realsumm-result-by-gpt4-w-finesure.json
 ```
+For generating the datasets for robustness, refer robustness.py file
 
